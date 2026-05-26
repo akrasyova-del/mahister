@@ -1,0 +1,16 @@
+{
+  "permissions": {
+    "allow": [
+      "PowerShell(Get-ChildItem -Recurse \"f:\\\\Projects\\\\satellite-watcher\" -File | Where-Object { $_.FullName -notmatch \"node_modules|__pycache__|\\\\.db$\" } | Select-Object @{N='Path';E={$_.FullName.Replace\\('f:\\\\Projects\\\\satellite-watcher\\\\',''\\)}} | Sort-Object Path | Format-Table -AutoSize)",
+      "PowerShell(cd \"f:\\\\Projects\\\\satellite-watcher\\\\backend\"; $env:MOCK_TLE=\"true\"; $env:MOCK_WEATHER=\"true\"; python -m pytest tests/ -v --tb=short 2>&1 | Select-Object -Last 30)",
+      "PowerShell(cd \"f:\\\\Projects\\\\satellite-watcher\\\\backend\"; $env:MOCK_TLE=\"true\"; $env:MOCK_WEATHER=\"true\"; Start-Process -NoNewWindow -FilePath \"uvicorn\" -ArgumentList \"app.main:app --port 8000\" -PassThru | Select-Object -ExpandProperty Id)",
+      "PowerShell(Invoke-RestMethod \"http://localhost:8000/health\" 2>&1)",
+      "PowerShell(Invoke-RestMethod \"http://localhost:8000/api/telescopes\" 2>&1)",
+      "PowerShell($sats = Invoke-RestMethod \"http://localhost:8000/api/satellites\"; $assigns = Invoke-RestMethod \"http://localhost:8000/api/assignments/current\"; Write-Host \"Satellites: $\\($sats.Count\\), Assignments: $\\($assigns.Count\\)\"; $transferred = $assigns | Where-Object { $_.priority_type -eq \"TRANSFERRED\" }; Write-Host \"Transferred: $\\($transferred.Count\\)\")",
+      "PowerShell(Invoke-WebRequest \"http://localhost:5173\" -UseBasicParsing -TimeoutSec 5)",
+      "Bash(git config *)",
+      "Bash(git add *)",
+      "Bash(git commit *)"
+    ]
+  }
+}

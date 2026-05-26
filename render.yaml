@@ -1,0 +1,33 @@
+services:
+  - type: web
+    name: satellite-watcher
+    runtime: python
+    region: frankfurt
+    plan: free
+    buildCommand: |
+      cd frontend && npm ci && npm run build && cp -r dist ../backend/static
+      cd ../backend && pip install -r requirements.txt
+    startCommand: cd backend && uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: DATABASE_URL
+        value: sqlite+aiosqlite:///./satellite_watcher.db
+      - key: CORS_ORIGINS
+        value: https://satellite-watcher.onrender.com
+      - key: MOCK_TLE
+        value: "false"
+      - key: MOCK_WEATHER
+        value: "false"
+      - key: CELESTRAK_BASE_URL
+        value: https://celestrak.org
+      - key: OPEN_METEO_BASE_URL
+        value: https://api.open-meteo.com/v1
+      - key: WEATHER_UPDATE_INTERVAL
+        value: "600"
+      - key: TLE_UPDATE_INTERVAL
+        value: "3600"
+      - key: ASSIGNMENT_UPDATE_INTERVAL
+        value: "300"
+      - key: SPACETRACK_USER
+        sync: false
+      - key: SPACETRACK_PASS
+        sync: false
