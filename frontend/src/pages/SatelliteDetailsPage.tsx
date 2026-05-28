@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
-import { getSatellite } from '../services/api'
+import { getSatellite, updateSatellitePriority } from '../services/api'
 import { StatusBadge } from '../components/StatusBadge'
 import type { Satellite } from '../types'
 import { format } from 'date-fns'
@@ -24,6 +24,9 @@ export function SatelliteDetailsPage() {
   const { noradId } = useParams<{ noradId: string }>()
   const [satellite, setSatellite] = useState<SatelliteDetail | null>(null)
   const [notFound, setNotFound] = useState(false)
+  const [editingPriority, setEditingPriority] = useState(false)
+  const [priorityInput, setPriorityInput] = useState('')
+  const [savingPriority, setSavingPriority] = useState(false)
 
   useEffect(() => {
     if (!noradId) return
@@ -31,6 +34,25 @@ export function SatelliteDetailsPage() {
       .then(s => setSatellite(s as SatelliteDetail))
       .catch(() => setNotFound(true))
   }, [noradId])
+
+  const startEditPriority = () => {
+    setPriorityInput(String(satellite?.priority ?? ''))
+    setEditingPriority(true)
+  }
+
+  const savePriority = async () => {
+    if (!satellite) return
+    const p = parseInt(priorityInput)
+    if (isNaN(p) || p < 1) { setEditingPriority(false); return }
+    setSavingPriority(true)
+    try {
+      await updateSatellitePriority(satellite.norad_id, p)
+      setSatellite({ ...satellite, priority: p })
+    } finally {
+      setSavingPriority(false)
+      setEditingPriority(false)
+    }
+  }
 
   if (notFound) return (
     <div className="text-center py-16 text-gray-400">
@@ -57,13 +79,52 @@ export function SatelliteDetailsPage() {
             ['Міжнародне позначення', satellite.international_designator],
             ['Категорія', satellite.category],
             ['Тип орбіти', satellite.orbit_type],
-            ['Пріоритет', satellite.priority],
           ].map(([label, value]) => (
             <div key={String(label)} className="flex justify-between text-sm">
               <span className="text-gray-400">{label}</span>
               <span className="text-white font-medium">{String(value)}</span>
             </div>
           ))}
+          {/* Priority — editable */}
+          <div className="flex justify-between text-sm items-center">
+            <span className="text-gray-400">Пріоритет</span>
+            {editingPriority ? (
+              <div className="flex items-center gap-1">
+                <input
+                  type="number"
+                  min={1}
+                  value={priorityInput}
+                  onChange={e => setPriorityInput(e.target.value)}
+                  onKeyDown={e => { if (e.key === 'Enter') savePriority(); if (e.key === 'Escape') setEditingPriority(false) }}
+                  className="w-16 bg-gray-800 border border-gray-600 rounded px-2 py-0.5 text-white text-sm text-right"
+                  autoFocus
+                />
+                <button
+                  onClick={savePriority}
+                  disabled={savingPriority}
+                  className="px-2 py-0.5 text-xs rounded bg-blue-700 hover:bg-blue-600 text-white disabled:opacity-50"
+                >
+                  ✓
+                </button>
+                <button
+                  onClick={() => setEditingPriority(false)}
+                  className="px-2 py-0.5 text-xs rounded bg-gray-700 hover:bg-gray-600 text-gray-300"
+                >
+                  ✕
+                </button>
+              </div>
+            ) : (
+              <div className="flex items-center gap-2">
+                <span className="text-white font-medium">{satellite.priority}</span>
+                <button
+                  onClick={startEditPriority}
+                  className="text-gray-500 hover:text-gray-300 text-xs px-1.5 py-0.5 rounded border border-gray-700 hover:border-gray-500"
+                >
+                  ✎
+                </button>
+              </div>
+            )}
+          </div>
         </div>
 
         <div className="bg-gray-900 border border-gray-700 rounded-xl p-4 space-y-3">
@@ -74,14 +135,13 @@ export function SatelliteDetailsPage() {
             ['Статус призначення', null],
             ['Тип пріоритету', satellite.priority_type || '—'],
             ['Причина', satellite.assignment_reason || '—'],
-            ['Score', satellite.assignment_score != null ? satellite.assignment_score.toFixed(3) : '—'],
           ].map(([label, value]) => (
-            <div key={String(label)} className="flex justify-between text-sm items-center">
-              <span className="text-gray-400">{label}</span>
+            <div key={String(label)} className="flex justify-between text-sm items-start gap-3">
+              <span className="text-gray-400 shrink-0">{label}</span>
               {label === 'Статус призначення' && satellite.assignment_status ? (
                 <StatusBadge status={satellite.assignment_status} type="assignment" />
               ) : (
-                <span className="text-white text-right max-w-[200px] truncate">{String(value)}</span>
+                <span className="text-white text-right">{String(value)}</span>
               )}
             </div>
           ))}
@@ -93,9 +153,6 @@ export function SatelliteDetailsPage() {
             ['Статус', satellite.tle_status],
             ['Джерело', satellite.tle_source || '—'],
             ['Вік (год)', satellite.tle_age_hours != null ? satellite.tle_age_hours.toFixed(1) : '—'],
-            ['Епоха', satellite.tle_epoch
-              ? format(new Date(satellite.tle_epoch), 'dd.MM.yyyy HH:mm:ss')
-              : '—'],
           ].map(([label, value]) => (
             <div key={String(label)} className="flex justify-between text-sm">
               <span className="text-gray-400">{label}</span>

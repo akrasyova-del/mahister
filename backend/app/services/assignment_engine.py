@@ -234,13 +234,13 @@ async def run_assignment(db: AsyncSession) -> dict:
         tle_ok = await _is_tle_valid(db, sat)
         if not tle_ok:
             status = AssignmentStatus.TLE_MISSING
-            await _upsert_assignment(db, existing_assignment, sat, None, status, PriorityType.NORMAL, "TLE missing or too old", 0.0)
+            await _upsert_assignment(db, existing_assignment, sat, None, status, PriorityType.NORMAL, "TLE відсутній або застарів", 0.0)
             stats["tle_missing"] += 1
             continue
 
         if not available_telescopes:
             status = AssignmentStatus.NO_AVAILABLE_TELESCOPE
-            await _upsert_assignment(db, existing_assignment, sat, None, status, PriorityType.NORMAL, "No telescopes available", 0.0)
+            await _upsert_assignment(db, existing_assignment, sat, None, status, PriorityType.NORMAL, "Немає доступних телескопів", 0.0)
             stats["no_telescope"] += 1
             continue
 
@@ -282,13 +282,13 @@ async def run_assignment(db: AsyncSession) -> dict:
         if is_transferred:
             status = AssignmentStatus.TRANSFERRED
             priority_type = PriorityType.TRANSFERRED
-            reason = f"Home telescope unavailable; best score via {best.telescope.name}"
+            reason = f"Домашній телескоп недоступний; кращий варіант: {best.telescope.name}"
             stats["transferred"] += 1
             changed_sats.append((sat, existing_assignment, best.telescope))
         else:
             status = AssignmentStatus.LOCAL_ASSIGNED
             priority_type = PriorityType.NORMAL
-            reason = f"Assigned to {best.telescope.name} (score={best.score:.3f})"
+            reason = f"Призначено до: {best.telescope.name}"
             stats["assigned"] += 1
 
         await _upsert_assignment(
@@ -311,7 +311,7 @@ async def run_assignment(db: AsyncSession) -> dict:
                 satellite_id=sat.id,
                 from_telescope_id=old_tel_id,
                 to_telescope_id=new_tel.id,
-                reason="Home telescope unavailable",
+                reason="Домашній телескоп недоступний",
                 active=1,
             ))
             await log_event(

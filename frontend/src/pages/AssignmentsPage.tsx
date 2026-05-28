@@ -4,7 +4,6 @@ import { getAssignments, getTelescopes, recalculateAssignments, manualAssign } f
 import { StatusBadge } from '../components/StatusBadge'
 import { wsService } from '../services/websocket'
 import type { Assignment, Telescope } from '../types'
-import { format } from 'date-fns'
 
 const CATEGORIES = [
   'Оптико-електронна розвідка',
@@ -139,9 +138,6 @@ export function AssignmentsPage() {
                 <th className="px-3 py-2 text-left">Спостерігає</th>
                 <th className="px-3 py-2 text-left">Статус</th>
                 <th className="px-3 py-2 text-left">Тип</th>
-                <th className="px-3 py-2 text-right">Score</th>
-                <th className="px-3 py-2 text-left">Наст. проліт</th>
-                <th className="px-3 py-2 text-left">Макс. кут</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-800">
@@ -161,7 +157,7 @@ export function AssignmentsPage() {
                     </Link>
                   </td>
                   <td className="px-3 py-2 font-mono text-gray-400">{a.norad_id}</td>
-                  <td className="px-3 py-2 text-gray-300 max-w-[140px] truncate">{a.category}</td>
+                  <td className="px-3 py-2 text-gray-300 max-w-[140px] truncate" title={a.category || ''}>{a.category}</td>
                   <td className="px-3 py-2">
                     <span className="px-1.5 py-0.5 rounded text-xs bg-gray-700 text-gray-300">{a.orbit_type}</span>
                   </td>
@@ -178,17 +174,6 @@ export function AssignmentsPage() {
                     ) : (
                       <span className="text-gray-500 text-xs">Нормальний</span>
                     )}
-                  </td>
-                  <td className="px-3 py-2 text-right font-mono text-xs">
-                    {a.score != null ? a.score.toFixed(3) : '—'}
-                  </td>
-                  <td className="px-3 py-2 text-gray-400 text-xs">
-                    {a.next_pass_start
-                      ? format(new Date(a.next_pass_start), 'dd.MM HH:mm')
-                      : '—'}
-                  </td>
-                  <td className="px-3 py-2 text-gray-400 text-xs">
-                    {a.max_elevation_deg != null ? `${a.max_elevation_deg.toFixed(1)}°` : '—'}
                   </td>
                 </tr>
               ))}

@@ -9,8 +9,8 @@ const TELESCOPE_STATUS_CONFIG: Record<TelescopeStatus, { label: string; classNam
   ERROR: { label: 'Помилка', className: 'bg-gray-100 text-gray-800 border-gray-300' },
 }
 
-const OBSERVING = { label: '● Спостерігається',          className: 'bg-green-100 text-green-700 border-green-200' }
-const NOT_OBSERVING = { label: '○ Призначено, поза видимістю', className: 'bg-gray-100 text-gray-600 border-gray-200' }
+const OBSERVING = { label: '● Спостерігається',          className: 'bg-green-900/40 text-green-400 border-green-700' }
+const NOT_OBSERVING = { label: '○ Призначено, поза видимістю', className: 'bg-gray-800 text-gray-500 border-gray-700' }
 
 const ASSIGNMENT_STATUS_CONFIG: Record<AssignmentStatus, { label: string; className: string }> = {
   LOCAL_ASSIGNED:         OBSERVING,

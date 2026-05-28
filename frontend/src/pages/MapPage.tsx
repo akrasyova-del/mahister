@@ -96,7 +96,7 @@ function TelescopePopup({ tel, assignments }: { tel: Telescope; assignments: Ass
 
   return (
     <div className="min-w-[240px]">
-      <h3 className="font-bold text-gray-900 text-sm mb-0.5">{tel.name}</h3>
+      <h3 className="font-bold text-white text-sm mb-0.5">{tel.name}</h3>
       <p className="text-xs text-gray-500 mb-0.5">{tel.region}</p>
       {tel.address && (
         <p className="text-xs text-gray-400 mb-2 leading-snug">{tel.address}</p>
@@ -128,7 +128,7 @@ function TelescopePopup({ tel, assignments }: { tel: Telescope; assignments: Ass
       </div>
 
       <div className="flex gap-1 flex-wrap">
-        {(['ONLINE', 'OFFLINE', 'MANUAL_MODE'] as TelescopeStatus[]).map(s => (
+        {(['ONLINE', 'OFFLINE'] as TelescopeStatus[]).map(s => (
           <button
             key={s}
             onClick={() => setStatus(s)}
@@ -136,17 +136,17 @@ function TelescopePopup({ tel, assignments }: { tel: Telescope; assignments: Ass
             className="px-2 py-1 text-xs rounded border disabled:opacity-40"
             style={{ borderColor: TELESCOPE_STATUS_COLOR[s], color: TELESCOPE_STATUS_COLOR[s] }}
           >
-            {s === 'ONLINE' ? 'Увімк' : s === 'OFFLINE' ? 'Вимк' : 'Ручний'}
+            {s === 'ONLINE' ? 'Увімк' : 'Вимк'}
           </button>
         ))}
       </div>
 
       {assigned.filter(a => a.priority_type === 'TRANSFERRED').length > 0 && (
         <div className="mt-2 text-xs">
-          <p className="font-semibold text-amber-700 mb-1">Перенаправлені КА:</p>
+          <p className="font-semibold text-amber-400 mb-1">Перенаправлені КА:</p>
           <ul className="space-y-0.5 max-h-24 overflow-y-auto">
             {assigned.filter(a => a.priority_type === 'TRANSFERRED').map(a => (
-              <li key={a.id} className="text-gray-700 truncate">{a.satellite_name}</li>
+              <li key={a.id} className="text-gray-300 truncate">{a.satellite_name}</li>
             ))}
           </ul>
         </div>
@@ -185,7 +185,7 @@ function SatellitePopup({ sat }: { sat: SatMapPoint }) {
             : `${(sat.altKm / 1000).toFixed(1)} тис. км`}
           </span>
         </div>
-        <div className="flex justify-between gap-3 pt-1 border-t border-gray-200 mt-1">
+        <div className="flex justify-between gap-3 pt-1 border-t border-gray-700 mt-1">
           <span className="text-gray-500">Кут піднесення:</span>
           <span className={sat.observable ? 'text-green-600 font-semibold' : 'text-gray-400'}>
             {sat.maxElevationDeg != null ? `${sat.maxElevationDeg.toFixed(1)}°` : '—'}
@@ -296,10 +296,10 @@ export function MapPage() {
       {/* Legend */}
       <div className="flex gap-4 flex-wrap text-xs">
         <span className="text-gray-400 font-medium">Телескопи:</span>
-        {Object.entries(TELESCOPE_STATUS_COLOR).map(([status, color]) => (
+        {(['ONLINE', 'OFFLINE', 'WEATHER_BLOCKED'] as const).map(status => (
           <div key={status} className="flex items-center gap-1.5">
-            <span className="w-3 h-3 rounded-full inline-block border-2" style={{ backgroundColor: color, borderColor: color }} />
-            <span className="text-gray-400">{status}</span>
+            <span className="w-3 h-3 rounded-full inline-block border-2" style={{ backgroundColor: TELESCOPE_STATUS_COLOR[status], borderColor: TELESCOPE_STATUS_COLOR[status] }} />
+            <span className="text-gray-400">{status === 'ONLINE' ? 'Онлайн' : status === 'OFFLINE' ? 'Офлайн' : 'Погода'}</span>
           </div>
         ))}
         <span className="w-px h-4 bg-gray-700" />
@@ -321,8 +321,8 @@ export function MapPage() {
           style={{ height: '100%', width: '100%', background: '#111827' }}
         >
           <TileLayer
-            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a>'
-            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
+            url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
           />
 
           {/* Satellite positions */}

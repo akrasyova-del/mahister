@@ -1,4 +1,5 @@
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, Query, HTTPException
+from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from app.database import get_db
@@ -125,7 +126,7 @@ async def get_satellite(norad_id: int, db: AsyncSession = Depends(get_db)):
             .where(
                 PassWindow.satellite_id == sat.id,
                 PassWindow.telescope_id == tel.id,
-                PassWindow.start_time >= datetime.now(timezone.utc),
+                PassWindow.end_time >= datetime.now(timezone.utc),
             )
             .order_by(PassWindow.start_time).limit(5)
         )
@@ -148,3 +149,20 @@ async def get_satellite(norad_id: int, db: AsyncSession = Depends(get_db)):
 
     data["telescopes"] = telescope_data
     return data
+
+
+class PriorityUpdate(BaseModel):
+    priority: int
+
+
+@router.patch("/{norad_id}/priority")
+async def update_priority(norad_id: int, body: PriorityUpdate, db: AsyncSession = Depends(get_db)):
+    result = await db.execute(select(Satellite).where(Satellite.norad_id == norad_id))
+    sat = result.scalar_one_or_none()
+    if not sat:
+        raise HTTPException(404, f"Satellite NORAD {norad_id} not found")
+    if body.priority < 1:
+        raise HTTPException(422, "Priority must be >= 1")
+    sat.priority = body.priority
+    await db.commit()
+    return {"norad_id": norad_id, "priority": body.priority}

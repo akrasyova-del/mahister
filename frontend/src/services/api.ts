@@ -30,6 +30,9 @@ export const getSatellites = (params?: { category?: string; orbit_type?: string 
 export const getSatellite = (noradId: number) =>
   api.get<Satellite>(`/satellites/${noradId}`).then(r => r.data)
 
+export const updateSatellitePriority = (noradId: number, priority: number) =>
+  api.patch<{ norad_id: number; priority: number }>(`/satellites/${noradId}/priority`, { priority }).then(r => r.data)
+
 // TLE
 export const triggerTleUpdate = () =>
   api.post<{ status: string; success: number; failed: number }>('/tle/update').then(r => r.data)
