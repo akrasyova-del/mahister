@@ -1,41 +1,37 @@
 import { useEffect, useState, useCallback } from 'react'
 import { Link } from 'react-router-dom'
-import { getAssignments, getTelescopes, recalculateAssignments, manualAssign } from '../services/api'
+import { getSatellites, getTelescopes, recalculateAssignments } from '../services/api'
 import { StatusBadge } from '../components/StatusBadge'
 import { wsService } from '../services/websocket'
-import type { Assignment, Telescope } from '../types'
+import type { Satellite, Telescope } from '../types'
 
-const CATEGORIES = [
-  'Оптико-електронна розвідка',
-  'Радіолокаційна розвідка',
-  'Радіотехнічна розвідка',
-  'Оптико-електронне спостереження',
-  'Метеорологічні',
-  'Навігаційні',
-]
+const ACTIVE_STATUSES = new Set(['LOCAL_ASSIGNED', 'TRANSFERRED', 'MANUAL_ASSIGNED'])
 
-const ORBIT_TYPES = ['LEO', 'MEO', 'GEO', 'HEO']
+const TLE_COLORS: Record<string, string> = {
+  FRESH: 'text-green-400',
+  AGING: 'text-yellow-400',
+  STALE: 'text-red-400',
+  TLE_MISSING: 'text-gray-500',
+  NO_EPOCH: 'text-gray-400',
+}
 
 export function AssignmentsPage() {
-  const [assignments, setAssignments] = useState<Assignment[]>([])
+  const [satellites, setSatellites] = useState<Satellite[]>([])
   const [telescopes, setTelescopes] = useState<Telescope[]>([])
   const [loading, setLoading] = useState(false)
 
-  // Filters
+  const [search, setSearch] = useState('')
   const [filterTelescope, setFilterTelescope] = useState('')
   const [filterCategory, setFilterCategory] = useState('')
+  const [filterOrbit, setFilterOrbit] = useState('')
   const [filterStatus, setFilterStatus] = useState('')
   const [transferredOnly, setTransferredOnly] = useState(false)
-  const [search, setSearch] = useState('')
 
   const load = useCallback(async () => {
-    const [a, t] = await Promise.all([
-      getAssignments({ transferred_only: transferredOnly || undefined }),
-      getTelescopes(),
-    ])
-    setAssignments(a)
-    setTelescopes(t)
-  }, [transferredOnly])
+    const [sats, tels] = await Promise.all([getSatellites(), getTelescopes()])
+    setSatellites(sats)
+    setTelescopes(tels)
+  }, [])
 
   useEffect(() => {
     load()
@@ -52,18 +48,24 @@ export function AssignmentsPage() {
     setLoading(false)
   }
 
-  const filtered = assignments.filter(a => {
-    if (filterTelescope && a.assigned_telescope_id !== parseInt(filterTelescope)) return false
-    if (filterCategory && a.category !== filterCategory) return false
-    if (filterStatus && a.status !== filterStatus) return false
-    if (search && !a.satellite_name?.toLowerCase().includes(search.toLowerCase()) && !String(a.norad_id).includes(search)) return false
+  const categories = [...new Set(satellites.map(s => s.category).filter(Boolean))]
+
+  const filtered = satellites.filter(s => {
+    if (search && !s.name.toLowerCase().includes(search.toLowerCase()) && !String(s.norad_id).includes(search)) return false
+    if (filterTelescope && String(s.assigned_telescope_id) !== filterTelescope) return false
+    if (filterCategory && s.category !== filterCategory) return false
+    if (filterOrbit && s.orbit_type !== filterOrbit) return false
+    if (filterStatus && s.assignment_status !== filterStatus) return false
+    if (transferredOnly && s.priority_type !== 'TRANSFERRED') return false
     return true
   })
 
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-white">Розподіл КА</h1>
+        <h1 className="text-2xl font-bold text-white">
+          Розподіл КА <span className="text-gray-500 font-normal text-lg">({satellites.length})</span>
+        </h1>
         <button
           onClick={handleRecalculate}
           disabled={loading}
@@ -73,11 +75,10 @@ export function AssignmentsPage() {
         </button>
       </div>
 
-      {/* Filters */}
-      <div className="bg-gray-900 border border-gray-700 rounded-xl p-4 grid grid-cols-2 gap-3 lg:grid-cols-5">
+      <div className="bg-gray-900 border border-gray-700 rounded-xl p-4 grid grid-cols-2 gap-3 lg:grid-cols-6">
         <input
           type="text"
-          placeholder="Пошук КА..."
+          placeholder="Пошук КА або NORAD..."
           value={search}
           onChange={e => setSearch(e.target.value)}
           className="bg-gray-800 border border-gray-600 rounded-lg px-3 py-1.5 text-sm text-gray-200 placeholder-gray-500 col-span-2 lg:col-span-1"
@@ -98,7 +99,15 @@ export function AssignmentsPage() {
           className="bg-gray-800 border border-gray-600 rounded-lg px-3 py-1.5 text-sm text-gray-200"
         >
           <option value="">Всі категорії</option>
-          {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
+          {categories.map(c => <option key={c} value={c}>{c}</option>)}
+        </select>
+        <select
+          value={filterOrbit}
+          onChange={e => setFilterOrbit(e.target.value)}
+          className="bg-gray-800 border border-gray-600 rounded-lg px-3 py-1.5 text-sm text-gray-200"
+        >
+          <option value="">Всі орбіти</option>
+          {['LEO', 'MEO', 'GEO', 'HEO'].map(o => <option key={o} value={o}>{o}</option>)}
         </select>
         <select
           value={filterStatus}
@@ -106,10 +115,11 @@ export function AssignmentsPage() {
           className="bg-gray-800 border border-gray-600 rounded-lg px-3 py-1.5 text-sm text-gray-200"
         >
           <option value="">Всі статуси</option>
-          <option value="LOCAL_ASSIGNED">Локальний</option>
+          <option value="LOCAL_ASSIGNED">Спостерігається</option>
           <option value="TRANSFERRED">Перенаправлений</option>
-          <option value="TLE_MISSING">TLE відсутній</option>
+          <option value="WAITING_VISIBILITY">Поза видимістю</option>
           <option value="NO_AVAILABLE_TELESCOPE">Немає телескопа</option>
+          <option value="TLE_MISSING">TLE відсутній</option>
         </select>
         <label className="flex items-center gap-2 text-sm text-gray-300 cursor-pointer">
           <input
@@ -118,13 +128,12 @@ export function AssignmentsPage() {
             onChange={e => setTransferredOnly(e.target.checked)}
             className="rounded"
           />
-          Тільки перенаправлені
+          Перенаправлені
         </label>
       </div>
 
-      <div className="text-xs text-gray-500">{filtered.length} з {assignments.length} записів</div>
+      <div className="text-xs text-gray-500">{filtered.length} з {satellites.length} КА</div>
 
-      {/* Table */}
       <div className="bg-gray-900 border border-gray-700 rounded-xl overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
@@ -134,46 +143,58 @@ export function AssignmentsPage() {
                 <th className="px-3 py-2 text-left">NORAD</th>
                 <th className="px-3 py-2 text-left">Категорія</th>
                 <th className="px-3 py-2 text-left">Орбіта</th>
+                <th className="px-3 py-2 text-left">TLE</th>
                 <th className="px-3 py-2 text-left">Закріплений за</th>
                 <th className="px-3 py-2 text-left">Спостерігає</th>
                 <th className="px-3 py-2 text-left">Статус</th>
                 <th className="px-3 py-2 text-left">Тип</th>
+                <th className="px-3 py-2"></th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-800">
-              {filtered.map(a => (
+              {filtered.map(s => (
                 <tr
-                  key={a.id}
+                  key={s.id}
                   className={`hover:bg-gray-800/50 transition-colors ${
-                    a.priority_type === 'TRANSFERRED' ? 'bg-amber-900/10' : ''
+                    s.priority_type === 'TRANSFERRED' ? 'bg-amber-900/10' : ''
                   }`}
                 >
-                  <td className="px-3 py-2">
-                    <Link
-                      to={`/satellites/${a.norad_id}`}
-                      className="text-blue-400 hover:text-blue-300 font-medium"
-                    >
-                      {a.satellite_name}
+                  <td className="px-3 py-2 font-medium max-w-[200px] truncate">
+                    <Link to={`/satellites/${s.norad_id}`} className="text-blue-400 hover:text-blue-300">
+                      {s.name}
                     </Link>
                   </td>
-                  <td className="px-3 py-2 font-mono text-gray-400">{a.norad_id}</td>
-                  <td className="px-3 py-2 text-gray-300 max-w-[140px] truncate" title={a.category || ''}>{a.category}</td>
-                  <td className="px-3 py-2">
-                    <span className="px-1.5 py-0.5 rounded text-xs bg-gray-700 text-gray-300">{a.orbit_type}</span>
+                  <td className="px-3 py-2 font-mono text-gray-400">{s.norad_id}</td>
+                  <td className="px-3 py-2 text-gray-300 text-xs max-w-[140px] truncate" title={s.category || ''}>
+                    {s.category}
                   </td>
-                  <td className="px-3 py-2 text-gray-400 text-xs">{a.home_telescope_name || '—'}</td>
+                  <td className="px-3 py-2">
+                    <span className="px-1.5 py-0.5 rounded text-xs bg-gray-700 text-gray-300">{s.orbit_type}</span>
+                  </td>
+                  <td className="px-3 py-2 text-xs whitespace-nowrap">
+                    <span className={TLE_COLORS[s.tle_status] || 'text-gray-400'}>{s.tle_status}</span>
+                    {s.tle_age_hours != null && (
+                      <span className="text-gray-600 ml-1">{s.tle_age_hours.toFixed(0)}г</span>
+                    )}
+                  </td>
+                  <td className="px-3 py-2 text-xs text-gray-400">{s.home_telescope_name || '—'}</td>
                   <td className="px-3 py-2 text-xs">
-                    {['LOCAL_ASSIGNED', 'TRANSFERRED', 'MANUAL_ASSIGNED'].includes(a.status)
-                      ? <span className="text-green-400 font-medium">{a.assigned_telescope_name || '—'}</span>
+                    {s.assignment_status && ACTIVE_STATUSES.has(s.assignment_status)
+                      ? <span className="text-green-400 font-medium">{s.assigned_telescope_name || '—'}</span>
                       : <span className="text-gray-600">—</span>}
                   </td>
-                  <td className="px-3 py-2"><StatusBadge status={a.status} type="assignment" /></td>
                   <td className="px-3 py-2">
-                    {a.priority_type === 'TRANSFERRED' ? (
-                      <span className="text-amber-400 text-xs font-semibold">⬆ Пріоритет</span>
-                    ) : (
-                      <span className="text-gray-500 text-xs">Нормальний</span>
+                    {s.assignment_status && (
+                      <StatusBadge status={s.assignment_status} type="assignment" />
                     )}
+                  </td>
+                  <td className="px-3 py-2">
+                    {s.priority_type === 'TRANSFERRED'
+                      ? <span className="text-amber-400 text-xs font-semibold">⬆ Пріоритет</span>
+                      : <span className="text-gray-600 text-xs">Норм.</span>}
+                  </td>
+                  <td className="px-3 py-2">
+                    <Link to={`/satellites/${s.norad_id}`} className="text-blue-400 hover:text-blue-300 text-xs">→</Link>
                   </td>
                 </tr>
               ))}
@@ -181,7 +202,7 @@ export function AssignmentsPage() {
           </table>
         </div>
         {filtered.length === 0 && (
-          <div className="p-8 text-center text-gray-500">Записів не знайдено</div>
+          <div className="p-8 text-center text-gray-500">КА не знайдено</div>
         )}
       </div>
     </div>

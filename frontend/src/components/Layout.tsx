@@ -5,8 +5,7 @@ import { wsService } from '../services/websocket'
 const NAV = [
   { path: '/', label: 'Панель' },
   { path: '/map', label: 'Карта' },
-  { path: '/assignments', label: 'Розподіл' },
-  { path: '/satellites', label: 'КА' },
+  { path: '/assignments', label: 'Розподіл КА' },
   { path: '/globe', label: '3D Глобус' },
 ]
 
