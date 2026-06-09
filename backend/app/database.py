@@ -28,8 +28,3 @@ async def init_db():
     from app.models import telescope, satellite, tle_record, weather, pass_window, assignment, event_log  # noqa
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
-        # Inline schema migrations for new nullable columns
-        try:
-            await conn.execute(text("ALTER TABLE telescopes ADD COLUMN address VARCHAR(300)"))
-        except Exception:
-            pass  # column already exists

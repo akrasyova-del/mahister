@@ -97,10 +97,7 @@ function TelescopePopup({ tel, assignments }: { tel: Telescope; assignments: Ass
   return (
     <div className="min-w-[240px]">
       <h3 className="font-bold text-white text-sm mb-0.5">{tel.name}</h3>
-      <p className="text-xs text-gray-500 mb-0.5">{tel.region}</p>
-      {tel.address && (
-        <p className="text-xs text-gray-400 mb-2 leading-snug">{tel.address}</p>
-      )}
+      <p className="text-xs text-gray-500 mb-2">{tel.region}</p>
 
       <div className="text-xs space-y-1 mb-3">
         <div className="flex justify-between">

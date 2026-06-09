@@ -44,7 +44,6 @@ def _telescope_dict(tel: Telescope) -> dict:
         "max_wind_speed_mps": tel.max_wind_speed_mps,
         "min_visibility_km": tel.min_visibility_km,
         "active": tel.active,
-        "address": tel.address,
     }
 
 

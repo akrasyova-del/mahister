@@ -50,7 +50,6 @@ export interface Telescope {
   max_wind_speed_mps: number
   min_visibility_km: number
   active: boolean
-  address?: string | null
   weather?: Weather
 }
 

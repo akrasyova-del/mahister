@@ -29,4 +29,3 @@ class Telescope(Base):
     max_wind_speed_mps = Column(Float, default=12.0)
     min_visibility_km = Column(Float, default=10.0)
     active = Column(Boolean, default=True)
-    address = Column(String(300), nullable=True)
