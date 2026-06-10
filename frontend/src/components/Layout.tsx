@@ -6,6 +6,7 @@ const NAV = [
   { path: '/', label: 'Панель' },
   { path: '/map', label: 'Карта' },
   { path: '/assignments', label: 'Розподіл КА' },
+  { path: '/catalog', label: 'Каталог КА' },
   { path: '/globe', label: '3D Глобус' },
 ]
 

@@ -67,7 +67,7 @@ export interface Satellite {
   name: string
   norad_id: number
   international_designator: string
-  category: string
+  category: string | null
   orbit_type: OrbitType
   priority: number
   active: boolean
@@ -125,6 +125,22 @@ export interface DashboardState {
   online_telescopes: number
   telescopes: TelescopeCard[]
   recent_events: Event[]
+}
+
+export interface CatalogEntry {
+  norad_id: number
+  name: string
+  international_designator: string | null
+  country: string | null
+  object_type: string | null
+  launch_date: string | null
+  period_min: number | null
+  apogee_km: number | null
+  perigee_km: number | null
+  inclination_deg: number | null
+  orbit_type: OrbitType
+  last_synced_at: string | null
+  tracked: boolean
 }
 
 export interface PassWindow {

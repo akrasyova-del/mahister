@@ -25,6 +25,6 @@ async def get_db() -> AsyncSession:
 
 
 async def init_db():
-    from app.models import telescope, satellite, tle_record, weather, pass_window, assignment, event_log  # noqa
+    from app.models import telescope, satellite, tle_record, weather, pass_window, assignment, event_log, catalog_entry  # noqa
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)

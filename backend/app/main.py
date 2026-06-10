@@ -13,7 +13,7 @@ from app.services.assignment_engine import run_assignment
 from app.services.event_service import log_event
 from app.models.event_log import EventLevel, EventType
 from app.websocket.manager import ws_manager
-from app.api import telescopes, satellites, tle, weather, passes, assignments, dashboard, events
+from app.api import telescopes, satellites, tle, weather, passes, assignments, dashboard, events, catalog
 
 scheduler = AsyncIOScheduler()
 
@@ -115,6 +115,7 @@ app.include_router(passes.router)
 app.include_router(assignments.router)
 app.include_router(dashboard.router)
 app.include_router(events.router)
+app.include_router(catalog.router)
 
 
 @app.websocket("/ws/dashboard")

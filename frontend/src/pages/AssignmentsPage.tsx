@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { getSatellites, getTelescopes, recalculateAssignments } from '../services/api'
 import { StatusBadge } from '../components/StatusBadge'
 import { wsService } from '../services/websocket'
+import { UNCATEGORIZED_LABEL } from '../constants'
 import type { Satellite, Telescope } from '../types'
 
 const ACTIVE_STATUSES = new Set(['LOCAL_ASSIGNED', 'TRANSFERRED', 'MANUAL_ASSIGNED'])
@@ -48,7 +49,7 @@ export function AssignmentsPage() {
     setLoading(false)
   }
 
-  const categories = [...new Set(satellites.map(s => s.category).filter(Boolean))]
+  const categories = [...new Set(satellites.map(s => s.category).filter((c): c is string => !!c))]
 
   const filtered = satellites.filter(s => {
     if (search && !s.name.toLowerCase().includes(search.toLowerCase()) && !String(s.norad_id).includes(search)) return false
@@ -165,8 +166,10 @@ export function AssignmentsPage() {
                     </Link>
                   </td>
                   <td className="px-3 py-2 font-mono text-gray-400">{s.norad_id}</td>
-                  <td className="px-3 py-2 text-gray-300 text-xs max-w-[140px] truncate" title={s.category || ''}>
-                    {s.category}
+                  <td className="px-3 py-2 text-xs max-w-[140px] truncate" title={s.category || UNCATEGORIZED_LABEL}>
+                    {s.category
+                      ? <span className="text-gray-300">{s.category}</span>
+                      : <span className="text-gray-500 italic">{UNCATEGORIZED_LABEL}</span>}
                   </td>
                   <td className="px-3 py-2">
                     <span className="px-1.5 py-0.5 rounded text-xs bg-gray-700 text-gray-300">{s.orbit_type}</span>

@@ -3,6 +3,7 @@ import { Layout } from './components/Layout'
 import { Dashboard } from './pages/Dashboard'
 import { MapPage } from './pages/MapPage'
 import { AssignmentsPage } from './pages/AssignmentsPage'
+import { CatalogPage } from './pages/CatalogPage'
 import { SatelliteDetailsPage } from './pages/SatelliteDetailsPage'
 import { TelescopeDetailsPage } from './pages/TelescopeDetailsPage'
 import { Globe3DPage } from './pages/Globe3DPage'
@@ -15,6 +16,7 @@ export default function App() {
           <Route path="/" element={<Dashboard />} />
           <Route path="/map" element={<MapPage />} />
           <Route path="/assignments" element={<AssignmentsPage />} />
+          <Route path="/catalog" element={<CatalogPage />} />
           <Route path="/satellites/:noradId" element={<SatelliteDetailsPage />} />
           <Route path="/telescopes/:code" element={<TelescopeDetailsPage />} />
           <Route path="/globe" element={<Globe3DPage />} />

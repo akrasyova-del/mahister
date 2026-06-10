@@ -6,6 +6,7 @@ import type {
   DashboardState,
   Event,
   PassWindow,
+  CatalogEntry,
 } from '../types'
 
 const api = axios.create({ baseURL: '/api' })
@@ -24,7 +25,7 @@ export const updateTelescopeSettings = (code: string, settings: Record<string, u
   api.patch<Telescope>(`/telescopes/${code}/settings`, settings).then(r => r.data)
 
 // Satellites
-export const getSatellites = (params?: { category?: string; orbit_type?: string }) =>
+export const getSatellites = (params?: { category?: string; orbit_type?: string; include_untracked?: boolean }) =>
   api.get<Satellite[]>('/satellites', { params }).then(r => r.data)
 
 export const getSatellite = (noradId: number) =>
@@ -32,6 +33,22 @@ export const getSatellite = (noradId: number) =>
 
 export const updateSatellitePriority = (noradId: number, priority: number) =>
   api.patch<{ norad_id: number; priority: number }>(`/satellites/${noradId}/priority`, { priority }).then(r => r.data)
+
+export const updateSatelliteTracked = (noradId: number, tracked: boolean) =>
+  api.patch<{ norad_id: number; tracked: boolean }>(`/satellites/${noradId}/tracked`, { tracked }).then(r => r.data)
+
+export const updateSatelliteCategory = (noradId: number, category: string | null) =>
+  api.patch<{ norad_id: number; category: string | null }>(`/satellites/${noradId}/category`, { category }).then(r => r.data)
+
+// Catalog (Space-Track satcat)
+export const getCatalog = (params?: { search?: string; hide_tracked?: boolean }) =>
+  api.get<CatalogEntry[]>('/catalog', { params }).then(r => r.data)
+
+export const syncCatalog = () =>
+  api.post<{ status: string; synced: number; synced_at?: string }>('/catalog/sync').then(r => r.data)
+
+export const importFromCatalog = (norad_ids: number[], category?: string | null) =>
+  api.post<{ status: string; imported: number; reactivated: number }>('/catalog/import', { norad_ids, category }).then(r => r.data)
 
 // TLE
 export const triggerTleUpdate = () =>

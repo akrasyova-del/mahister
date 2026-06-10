@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
-import { getSatellite, updateSatellitePriority } from '../services/api'
+import { getSatellite, updateSatellitePriority, updateSatelliteCategory } from '../services/api'
 import { StatusBadge } from '../components/StatusBadge'
+import { CATEGORIES, UNCATEGORIZED_LABEL } from '../constants'
 import type { Satellite } from '../types'
 import { format } from 'date-fns'
 
@@ -27,6 +28,9 @@ export function SatelliteDetailsPage() {
   const [editingPriority, setEditingPriority] = useState(false)
   const [priorityInput, setPriorityInput] = useState('')
   const [savingPriority, setSavingPriority] = useState(false)
+  const [editingCategory, setEditingCategory] = useState(false)
+  const [categoryInput, setCategoryInput] = useState('')
+  const [savingCategory, setSavingCategory] = useState(false)
 
   useEffect(() => {
     if (!noradId) return
@@ -54,6 +58,24 @@ export function SatelliteDetailsPage() {
     }
   }
 
+  const startEditCategory = () => {
+    setCategoryInput(satellite?.category ?? '')
+    setEditingCategory(true)
+  }
+
+  const saveCategory = async () => {
+    if (!satellite) return
+    setSavingCategory(true)
+    try {
+      const category = categoryInput.trim() || null
+      await updateSatelliteCategory(satellite.norad_id, category)
+      setSatellite({ ...satellite, category })
+    } finally {
+      setSavingCategory(false)
+      setEditingCategory(false)
+    }
+  }
+
   if (notFound) return (
     <div className="text-center py-16 text-gray-400">
       <p className="text-2xl mb-2">КА не знайдено</p>
@@ -77,7 +99,6 @@ export function SatelliteDetailsPage() {
           {[
             ['NORAD ID', satellite.norad_id],
             ['Міжнародне позначення', satellite.international_designator],
-            ['Категорія', satellite.category],
             ['Тип орбіти', satellite.orbit_type],
           ].map(([label, value]) => (
             <div key={String(label)} className="flex justify-between text-sm">
@@ -85,6 +106,48 @@ export function SatelliteDetailsPage() {
               <span className="text-white font-medium">{String(value)}</span>
             </div>
           ))}
+          {/* Category — editable, nullable */}
+          <div className="flex justify-between text-sm items-center">
+            <span className="text-gray-400">Категорія</span>
+            {editingCategory ? (
+              <div className="flex items-center gap-1">
+                <select
+                  value={categoryInput}
+                  onChange={e => setCategoryInput(e.target.value)}
+                  className="bg-gray-800 border border-gray-600 rounded px-2 py-0.5 text-white text-sm"
+                  autoFocus
+                >
+                  <option value="">{UNCATEGORIZED_LABEL}</option>
+                  {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
+                </select>
+                <button
+                  onClick={saveCategory}
+                  disabled={savingCategory}
+                  className="px-2 py-0.5 text-xs rounded bg-blue-700 hover:bg-blue-600 text-white disabled:opacity-50"
+                >
+                  ✓
+                </button>
+                <button
+                  onClick={() => setEditingCategory(false)}
+                  className="px-2 py-0.5 text-xs rounded bg-gray-700 hover:bg-gray-600 text-gray-300"
+                >
+                  ✕
+                </button>
+              </div>
+            ) : (
+              <div className="flex items-center gap-2">
+                <span className={satellite.category ? 'text-white font-medium' : 'text-gray-500 italic'}>
+                  {satellite.category || UNCATEGORIZED_LABEL}
+                </span>
+                <button
+                  onClick={startEditCategory}
+                  className="text-gray-500 hover:text-gray-300 text-xs px-1.5 py-0.5 rounded border border-gray-700 hover:border-gray-500"
+                >
+                  ✎
+                </button>
+              </div>
+            )}
+          </div>
           {/* Priority — editable */}
           <div className="flex justify-between text-sm items-center">
             <span className="text-gray-400">Пріоритет</span>
