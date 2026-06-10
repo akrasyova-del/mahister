@@ -365,6 +365,15 @@ async def update_all_tles(db: AsyncSession) -> dict:
     return {"success": success, "failed": failed, "fallback": fallback, "total": len(satellites)}
 
 
+async def fetch_or_mock_tle(db: AsyncSession, satellite: Satellite) -> TLERecord:
+    """Fetch a real TLE; if none is available (e.g. long-decayed object), fall
+    back to a mock TLE so the satellite still appears on the map/globe."""
+    record = await fetch_and_store_tle(db, satellite)
+    if record:
+        return record
+    return await _store_mock_tle(db, satellite)
+
+
 async def store_manual_tle(
     db: AsyncSession,
     satellite_id: int,

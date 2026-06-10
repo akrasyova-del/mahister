@@ -8,7 +8,7 @@ from app.models.catalog_entry import CatalogEntry
 from app.models.satellite import Satellite
 from app.models.assignment import Assignment, AssignmentStatus, PriorityType
 from app.services.catalog_service import sync_catalog, classify_orbit
-from app.services.tle_service import fetch_and_store_tle
+from app.services.tle_service import fetch_or_mock_tle
 from app.websocket.manager import ws_manager
 
 router = APIRouter(prefix="/api/catalog", tags=["catalog"])
@@ -123,7 +123,7 @@ async def import_from_catalog(body: ImportRequest, db: AsyncSession = Depends(ge
 
         await db.flush()
         try:
-            await fetch_and_store_tle(db, sat)
+            await fetch_or_mock_tle(db, sat)
         except Exception:
             pass
 

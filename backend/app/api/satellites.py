@@ -8,7 +8,7 @@ from app.models.tle_record import TLERecord
 from app.models.assignment import Assignment, AssignmentStatus, PriorityType
 from app.models.telescope import Telescope
 from app.models.pass_window import PassWindow
-from app.services.tle_service import _tle_age_hours
+from app.services.tle_service import _tle_age_hours, fetch_or_mock_tle
 from app.websocket.manager import ws_manager
 from datetime import datetime, timezone
 
@@ -203,6 +203,19 @@ async def update_tracked(norad_id: int, body: TrackedUpdate, db: AsyncSession = 
                 reason="Відстеження увімкнено, очікує перерахунку",
                 score=0.0,
             ))
+
+        existing_tle = (
+            await db.execute(
+                select(TLERecord)
+                .where(TLERecord.satellite_id == sat.id, TLERecord.is_active == True)
+                .limit(1)
+            )
+        ).scalar_one_or_none()
+        if not existing_tle:
+            try:
+                await fetch_or_mock_tle(db, sat)
+            except Exception:
+                pass
 
     await db.commit()
     await ws_manager.send_event("assignments_updated", {"norad_id": norad_id, "tracked": body.tracked})

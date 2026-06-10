@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
-import { getSatellite, updateSatellitePriority, updateSatelliteCategory } from '../services/api'
+import { getSatellite, updateSatellitePriority, updateSatelliteCategory, getTelescopes, manualAssign } from '../services/api'
 import { StatusBadge } from '../components/StatusBadge'
 import { CATEGORIES, UNCATEGORIZED_LABEL } from '../constants'
-import type { Satellite } from '../types'
+import type { Satellite, Telescope } from '../types'
 import { format } from 'date-fns'
 
 interface SatelliteDetail extends Satellite {
@@ -31,6 +31,10 @@ export function SatelliteDetailsPage() {
   const [editingCategory, setEditingCategory] = useState(false)
   const [categoryInput, setCategoryInput] = useState('')
   const [savingCategory, setSavingCategory] = useState(false)
+  const [telescopes, setTelescopes] = useState<Telescope[]>([])
+  const [editingTelescope, setEditingTelescope] = useState(false)
+  const [telescopeInput, setTelescopeInput] = useState('')
+  const [savingTelescope, setSavingTelescope] = useState(false)
 
   useEffect(() => {
     if (!noradId) return
@@ -38,6 +42,10 @@ export function SatelliteDetailsPage() {
       .then(s => setSatellite(s as SatelliteDetail))
       .catch(() => setNotFound(true))
   }, [noradId])
+
+  useEffect(() => {
+    getTelescopes().then(setTelescopes)
+  }, [])
 
   const startEditPriority = () => {
     setPriorityInput(String(satellite?.priority ?? ''))
@@ -73,6 +81,33 @@ export function SatelliteDetailsPage() {
     } finally {
       setSavingCategory(false)
       setEditingCategory(false)
+    }
+  }
+
+  const startEditTelescope = () => {
+    setTelescopeInput(satellite?.assigned_telescope_id ? String(satellite.assigned_telescope_id) : '')
+    setEditingTelescope(true)
+  }
+
+  const saveTelescope = async () => {
+    if (!satellite) return
+    const telescopeId = parseInt(telescopeInput)
+    if (isNaN(telescopeId)) { setEditingTelescope(false); return }
+    setSavingTelescope(true)
+    try {
+      const updated = await manualAssign(satellite.id, telescopeId)
+      setSatellite({
+        ...satellite,
+        assigned_telescope_id: updated.assigned_telescope_id,
+        assigned_telescope_name: updated.assigned_telescope_name,
+        assignment_status: updated.status,
+        assignment_reason: updated.reason,
+        assignment_score: updated.score,
+        priority_type: updated.priority_type,
+      })
+    } finally {
+      setSavingTelescope(false)
+      setEditingTelescope(false)
     }
   }
 
@@ -194,20 +229,74 @@ export function SatelliteDetailsPage() {
           <h2 className="font-semibold text-gray-200 text-sm uppercase tracking-wide">Призначення</h2>
           {[
             ['Домашній телескоп', satellite.home_telescope_name || '—'],
-            ['Поточний телескоп', satellite.assigned_telescope_name || '—'],
-            ['Статус призначення', null],
+          ].map(([label, value]) => (
+            <div key={String(label)} className="flex justify-between text-sm items-start gap-3">
+              <span className="text-gray-400 shrink-0">{label}</span>
+              <span className="text-white text-right">{String(value)}</span>
+            </div>
+          ))}
+
+          {/* Current telescope — editable, manual (re)assignment */}
+          <div className="flex justify-between text-sm items-center gap-3">
+            <span className="text-gray-400 shrink-0">Поточний телескоп</span>
+            {editingTelescope ? (
+              <div className="flex items-center gap-1">
+                <select
+                  value={telescopeInput}
+                  onChange={e => setTelescopeInput(e.target.value)}
+                  className="bg-gray-800 border border-gray-600 rounded px-2 py-0.5 text-white text-sm"
+                  autoFocus
+                >
+                  <option value="">—</option>
+                  {telescopes.map(t => (
+                    <option key={t.id} value={t.id}>{t.name}</option>
+                  ))}
+                </select>
+                <button
+                  onClick={saveTelescope}
+                  disabled={savingTelescope || !telescopeInput}
+                  className="px-2 py-0.5 text-xs rounded bg-blue-700 hover:bg-blue-600 text-white disabled:opacity-50"
+                >
+                  ✓
+                </button>
+                <button
+                  onClick={() => setEditingTelescope(false)}
+                  className="px-2 py-0.5 text-xs rounded bg-gray-700 hover:bg-gray-600 text-gray-300"
+                >
+                  ✕
+                </button>
+              </div>
+            ) : (
+              <div className="flex items-center gap-2">
+                <span className="text-white font-medium">{satellite.assigned_telescope_name || '—'}</span>
+                <button
+                  onClick={startEditTelescope}
+                  className="text-gray-500 hover:text-gray-300 text-xs px-1.5 py-0.5 rounded border border-gray-700 hover:border-gray-500"
+                >
+                  ✎
+                </button>
+              </div>
+            )}
+          </div>
+
+          {[
             ['Тип пріоритету', satellite.priority_type || '—'],
             ['Причина', satellite.assignment_reason || '—'],
           ].map(([label, value]) => (
             <div key={String(label)} className="flex justify-between text-sm items-start gap-3">
               <span className="text-gray-400 shrink-0">{label}</span>
-              {label === 'Статус призначення' && satellite.assignment_status ? (
-                <StatusBadge status={satellite.assignment_status} type="assignment" />
-              ) : (
-                <span className="text-white text-right">{String(value)}</span>
-              )}
+              <span className="text-white text-right">{String(value)}</span>
             </div>
           ))}
+
+          <div className="flex justify-between text-sm items-start gap-3">
+            <span className="text-gray-400 shrink-0">Статус призначення</span>
+            {satellite.assignment_status ? (
+              <StatusBadge status={satellite.assignment_status} type="assignment" />
+            ) : (
+              <span className="text-white text-right">—</span>
+            )}
+          </div>
         </div>
 
         <div className="bg-gray-900 border border-gray-700 rounded-xl p-4 space-y-3">
