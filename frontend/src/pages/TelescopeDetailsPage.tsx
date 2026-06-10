@@ -2,15 +2,18 @@ import { useEffect, useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { getTelescope, updateTelescopeStatus, recalculateAssignments, getAssignments, updateTelescopeSettings } from '../services/api'
 import { StatusBadge } from '../components/StatusBadge'
+import { Spinner } from '../components/Spinner'
 import { wsService } from '../services/websocket'
 import type { Telescope, Assignment, TelescopeStatus } from '../types'
 import { format } from 'date-fns'
+
+type TelescopeAction = TelescopeStatus | 'recalculate' | 'settings' | null
 
 export function TelescopeDetailsPage() {
   const { code } = useParams<{ code: string }>()
   const [telescope, setTelescope] = useState<Telescope | null>(null)
   const [assignments, setAssignments] = useState<Assignment[]>([])
-  const [loading, setLoading] = useState(false)
+  const [activeAction, setActiveAction] = useState<TelescopeAction>(null)
   const [editing, setEditing] = useState(false)
   const [settings, setSettings] = useState<Record<string, number>>({})
 
@@ -44,26 +47,35 @@ export function TelescopeDetailsPage() {
 
   const setStatus = async (status: TelescopeStatus) => {
     if (!code) return
-    setLoading(true)
-    await updateTelescopeStatus(code, status)
-    await load()
-    setLoading(false)
+    setActiveAction(status)
+    try {
+      await updateTelescopeStatus(code, status)
+      await load()
+    } finally {
+      setActiveAction(null)
+    }
   }
 
   const saveSettings = async () => {
     if (!code) return
-    setLoading(true)
-    await updateTelescopeSettings(code, settings)
-    setEditing(false)
-    await load()
-    setLoading(false)
+    setActiveAction('settings')
+    try {
+      await updateTelescopeSettings(code, settings)
+      setEditing(false)
+      await load()
+    } finally {
+      setActiveAction(null)
+    }
   }
 
   const handleRecalculate = async () => {
-    setLoading(true)
-    await recalculateAssignments()
-    await load()
-    setLoading(false)
+    setActiveAction('recalculate')
+    try {
+      await recalculateAssignments()
+      await load()
+    } finally {
+      setActiveAction(null)
+    }
   }
 
   if (!telescope) return <div className="py-16 text-center text-gray-400">Завантаження...</div>
@@ -102,22 +114,22 @@ export function TelescopeDetailsPage() {
             <button
               key={s}
               onClick={() => setStatus(s)}
-              disabled={loading || telescope.status === s}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors disabled:opacity-40 ${
+              disabled={activeAction !== null || telescope.status === s}
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors disabled:opacity-40 flex items-center gap-2 ${
                 telescope.status === s
                   ? 'bg-blue-900 text-blue-200 border border-blue-600'
                   : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
               }`}
             >
-              {s}
+              {activeAction === s && <Spinner />} {s}
             </button>
           ))}
           <button
             onClick={handleRecalculate}
-            disabled={loading}
-            className="px-4 py-2 bg-emerald-800 hover:bg-emerald-700 text-white text-sm rounded-lg transition-colors disabled:opacity-50"
+            disabled={activeAction !== null}
+            className="px-4 py-2 bg-emerald-800 hover:bg-emerald-700 text-white text-sm rounded-lg transition-colors disabled:opacity-50 flex items-center gap-2"
           >
-            ⚡ Перерахувати розподіл
+            {activeAction === 'recalculate' ? <Spinner /> : '⚡'} Перерахувати розподіл
           </button>
         </div>
       </div>
@@ -150,10 +162,10 @@ export function TelescopeDetailsPage() {
               ))}
               <button
                 onClick={saveSettings}
-                disabled={loading}
-                className="w-full mt-2 px-3 py-1.5 bg-blue-800 hover:bg-blue-700 text-white text-sm rounded-lg"
+                disabled={activeAction !== null}
+                className="w-full mt-2 px-3 py-1.5 bg-blue-800 hover:bg-blue-700 text-white text-sm rounded-lg disabled:opacity-50 flex items-center justify-center gap-2"
               >
-                Зберегти
+                {activeAction === 'settings' && <Spinner />} Зберегти
               </button>
             </div>
           ) : (

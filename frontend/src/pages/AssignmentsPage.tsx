@@ -2,6 +2,7 @@ import { useEffect, useState, useCallback } from 'react'
 import { Link } from 'react-router-dom'
 import { getSatellites, getTelescopes, recalculateAssignments } from '../services/api'
 import { StatusBadge } from '../components/StatusBadge'
+import { Spinner } from '../components/Spinner'
 import { wsService } from '../services/websocket'
 import { UNCATEGORIZED_LABEL } from '../constants'
 import type { Satellite, Telescope } from '../types'
@@ -44,9 +45,12 @@ export function AssignmentsPage() {
 
   const handleRecalculate = async () => {
     setLoading(true)
-    await recalculateAssignments()
-    await load()
-    setLoading(false)
+    try {
+      await recalculateAssignments()
+      await load()
+    } finally {
+      setLoading(false)
+    }
   }
 
   const categories = [...new Set(satellites.map(s => s.category).filter((c): c is string => !!c))]
@@ -70,9 +74,9 @@ export function AssignmentsPage() {
         <button
           onClick={handleRecalculate}
           disabled={loading}
-          className="px-3 py-1.5 bg-emerald-800 hover:bg-emerald-700 text-white text-sm rounded-lg disabled:opacity-50 transition-colors"
+          className="px-3 py-1.5 bg-emerald-800 hover:bg-emerald-700 text-white text-sm rounded-lg disabled:opacity-50 transition-colors flex items-center gap-2"
         >
-          ⚡ Перерахувати
+          {loading ? <Spinner /> : '⚡'} Перерахувати
         </button>
       </div>
 

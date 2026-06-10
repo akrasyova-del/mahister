@@ -9,6 +9,7 @@ import {
   updateSatelliteCategory,
 } from '../services/api'
 import { wsService } from '../services/websocket'
+import { Spinner } from '../components/Spinner'
 import { CATEGORIES, UNCATEGORIZED_LABEL } from '../constants'
 import type { Satellite, CatalogEntry } from '../types'
 
@@ -130,9 +131,9 @@ export function CatalogPage() {
             <button
               onClick={handleSync}
               disabled={syncing}
-              className="px-3 py-1.5 bg-emerald-800 hover:bg-emerald-700 text-white text-sm rounded-lg disabled:opacity-50 transition-colors"
+              className="px-3 py-1.5 bg-emerald-800 hover:bg-emerald-700 text-white text-sm rounded-lg disabled:opacity-50 transition-colors flex items-center gap-2"
             >
-              {syncing ? 'Синхронізація...' : '⟳ Синхронізувати з Space-Track'}
+              {syncing && <Spinner />} {syncing ? 'Синхронізація...' : '⟳ Синхронізувати з Space-Track'}
             </button>
             <span className="text-xs text-gray-500">{catalog.length} об'єктів</span>
           </div>
@@ -151,9 +152,9 @@ export function CatalogPage() {
               <button
                 onClick={handleImport}
                 disabled={loading}
-                className="px-3 py-1.5 bg-blue-800 hover:bg-blue-700 text-white text-sm rounded-lg disabled:opacity-50 transition-colors"
+                className="px-3 py-1.5 bg-blue-800 hover:bg-blue-700 text-white text-sm rounded-lg disabled:opacity-50 transition-colors flex items-center gap-2"
               >
-                + Додати до спостереження
+                {loading && <Spinner />} + Додати до спостереження
               </button>
             </div>
           )}
@@ -338,9 +339,9 @@ function CategoryEditor({ satellite }: { satellite: Satellite }) {
         <button
           onClick={save}
           disabled={saving}
-          className="px-1.5 py-0.5 text-xs rounded bg-blue-700 hover:bg-blue-600 text-white disabled:opacity-50"
+          className="px-1.5 py-0.5 text-xs rounded bg-blue-700 hover:bg-blue-600 text-white disabled:opacity-50 flex items-center"
         >
-          ✓
+          {saving ? <Spinner className="h-3 w-3" /> : '✓'}
         </button>
         <button
           onClick={() => { setValue(current ?? ''); setEditing(false) }}

@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { getDashboardState, triggerWeatherUpdate, triggerTleUpdate, recalculateAssignments } from '../services/api'
 import { wsService } from '../services/websocket'
 import { StatusBadge } from '../components/StatusBadge'
+import { Spinner } from '../components/Spinner'
 import type { DashboardState, TelescopeCard } from '../types'
 import { format } from 'date-fns'
 
@@ -68,9 +69,11 @@ function TelescopeCard({ tel }: { tel: TelescopeCard }) {
   )
 }
 
+type DashboardAction = 'weather' | 'tle' | 'recalculate' | null
+
 export function Dashboard() {
   const [state, setState] = useState<DashboardState | null>(null)
-  const [loading, setLoading] = useState(false)
+  const [activeAction, setActiveAction] = useState<DashboardAction>(null)
   const fetching = useRef(false)
 
   const load = useCallback(async () => {
@@ -98,24 +101,33 @@ export function Dashboard() {
   }, [load])
 
   const handleWeatherUpdate = async () => {
-    setLoading(true)
-    await triggerWeatherUpdate()
-    await load()
-    setLoading(false)
+    setActiveAction('weather')
+    try {
+      await triggerWeatherUpdate()
+      await load()
+    } finally {
+      setActiveAction(null)
+    }
   }
 
   const handleTleUpdate = async () => {
-    setLoading(true)
-    await triggerTleUpdate()
-    await load()
-    setLoading(false)
+    setActiveAction('tle')
+    try {
+      await triggerTleUpdate()
+      await load()
+    } finally {
+      setActiveAction(null)
+    }
   }
 
   const handleRecalculate = async () => {
-    setLoading(true)
-    await recalculateAssignments()
-    await load()
-    setLoading(false)
+    setActiveAction('recalculate')
+    try {
+      await recalculateAssignments()
+      await load()
+    } finally {
+      setActiveAction(null)
+    }
   }
 
   if (!state) {
@@ -129,24 +141,24 @@ export function Dashboard() {
         <div className="flex gap-2">
           <button
             onClick={handleWeatherUpdate}
-            disabled={loading}
-            className="px-3 py-1.5 bg-sky-800 hover:bg-sky-700 text-white text-sm rounded-lg disabled:opacity-50 transition-colors"
+            disabled={activeAction !== null}
+            className="px-3 py-1.5 bg-sky-800 hover:bg-sky-700 text-white text-sm rounded-lg disabled:opacity-50 transition-colors flex items-center gap-2"
           >
-            🌤 Оновити погоду
+            {activeAction === 'weather' ? <Spinner /> : '🌤'} Оновити погоду
           </button>
           <button
             onClick={handleTleUpdate}
-            disabled={loading}
-            className="px-3 py-1.5 bg-indigo-800 hover:bg-indigo-700 text-white text-sm rounded-lg disabled:opacity-50 transition-colors"
+            disabled={activeAction !== null}
+            className="px-3 py-1.5 bg-indigo-800 hover:bg-indigo-700 text-white text-sm rounded-lg disabled:opacity-50 transition-colors flex items-center gap-2"
           >
-            📡 Оновити TLE
+            {activeAction === 'tle' ? <Spinner /> : '📡'} Оновити TLE
           </button>
           <button
             onClick={handleRecalculate}
-            disabled={loading}
-            className="px-3 py-1.5 bg-emerald-800 hover:bg-emerald-700 text-white text-sm rounded-lg disabled:opacity-50 transition-colors"
+            disabled={activeAction !== null}
+            className="px-3 py-1.5 bg-emerald-800 hover:bg-emerald-700 text-white text-sm rounded-lg disabled:opacity-50 transition-colors flex items-center gap-2"
           >
-            ⚡ Перерахувати
+            {activeAction === 'recalculate' ? <Spinner /> : '⚡'} Перерахувати
           </button>
         </div>
       </div>

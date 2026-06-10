@@ -4,6 +4,7 @@ import L from 'leaflet'
 import * as satjs from 'satellite.js'
 import { getTelescopes, getAssignments, getTleLines, triggerWeatherUpdate, updateTelescopeStatus } from '../services/api'
 import { StatusBadge, TELESCOPE_STATUS_COLOR } from '../components/StatusBadge'
+import { Spinner } from '../components/Spinner'
 import type { Telescope, Assignment, TelescopeStatus } from '../types'
 import { wsService } from '../services/websocket'
 import 'leaflet/dist/leaflet.css'
@@ -85,13 +86,16 @@ function getElevationDeg(
 }
 
 function TelescopePopup({ tel, assignments }: { tel: Telescope; assignments: Assignment[] }) {
-  const [changing, setChanging] = useState(false)
+  const [changingTo, setChangingTo] = useState<string | null>(null)
   const assigned = assignments.filter(a => a.assigned_telescope_id === tel.id)
 
   const setStatus = async (status: string) => {
-    setChanging(true)
-    await updateTelescopeStatus(tel.code, status)
-    setChanging(false)
+    setChangingTo(status)
+    try {
+      await updateTelescopeStatus(tel.code, status)
+    } finally {
+      setChangingTo(null)
+    }
   }
 
   return (
@@ -129,10 +133,11 @@ function TelescopePopup({ tel, assignments }: { tel: Telescope; assignments: Ass
           <button
             key={s}
             onClick={() => setStatus(s)}
-            disabled={changing || tel.status === s}
-            className="px-2 py-1 text-xs rounded border disabled:opacity-40"
+            disabled={changingTo !== null || tel.status === s}
+            className="px-2 py-1 text-xs rounded border disabled:opacity-40 flex items-center gap-1.5"
             style={{ borderColor: TELESCOPE_STATUS_COLOR[s], color: TELESCOPE_STATUS_COLOR[s] }}
           >
+            {changingTo === s && <Spinner className="h-3 w-3" />}
             {s === 'ONLINE' ? 'Увімк' : 'Вимк'}
           </button>
         ))}
@@ -205,6 +210,7 @@ export function MapPage() {
   const [telescopes, setTelescopes] = useState<Telescope[]>([])
   const [assignments, setAssignments] = useState<Assignment[]>([])
   const [satPoints, setSatPoints] = useState<SatMapPoint[]>([])
+  const [refreshing, setRefreshing] = useState(false)
 
   const loadSatellites = useCallback(async (asgns: Assignment[], tels: Telescope[]) => {
     const tles = await getTleLines()
@@ -283,10 +289,18 @@ export function MapPage() {
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold text-white">Карта телескопів</h1>
         <button
-          onClick={load}
-          className="px-3 py-1.5 bg-gray-800 hover:bg-gray-700 text-sm text-gray-200 rounded-lg transition-colors"
+          onClick={async () => {
+            setRefreshing(true)
+            try {
+              await load()
+            } finally {
+              setRefreshing(false)
+            }
+          }}
+          disabled={refreshing}
+          className="px-3 py-1.5 bg-gray-800 hover:bg-gray-700 text-sm text-gray-200 rounded-lg transition-colors disabled:opacity-50 flex items-center gap-2"
         >
-          Оновити
+          {refreshing && <Spinner className="h-3.5 w-3.5" />} Оновити
         </button>
       </div>
 

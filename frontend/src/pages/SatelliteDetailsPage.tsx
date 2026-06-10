@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { getSatellite, updateSatellitePriority, updateSatelliteCategory, getTelescopes, manualAssign } from '../services/api'
 import { StatusBadge } from '../components/StatusBadge'
+import { Spinner } from '../components/Spinner'
 import { CATEGORIES, UNCATEGORIZED_LABEL } from '../constants'
 import type { Satellite, Telescope } from '../types'
 import { format } from 'date-fns'
@@ -158,9 +159,9 @@ export function SatelliteDetailsPage() {
                 <button
                   onClick={saveCategory}
                   disabled={savingCategory}
-                  className="px-2 py-0.5 text-xs rounded bg-blue-700 hover:bg-blue-600 text-white disabled:opacity-50"
+                  className="px-2 py-0.5 text-xs rounded bg-blue-700 hover:bg-blue-600 text-white disabled:opacity-50 flex items-center"
                 >
-                  ✓
+                  {savingCategory ? <Spinner className="h-3 w-3" /> : '✓'}
                 </button>
                 <button
                   onClick={() => setEditingCategory(false)}
@@ -200,9 +201,9 @@ export function SatelliteDetailsPage() {
                 <button
                   onClick={savePriority}
                   disabled={savingPriority}
-                  className="px-2 py-0.5 text-xs rounded bg-blue-700 hover:bg-blue-600 text-white disabled:opacity-50"
+                  className="px-2 py-0.5 text-xs rounded bg-blue-700 hover:bg-blue-600 text-white disabled:opacity-50 flex items-center"
                 >
-                  ✓
+                  {savingPriority ? <Spinner className="h-3 w-3" /> : '✓'}
                 </button>
                 <button
                   onClick={() => setEditingPriority(false)}
@@ -255,9 +256,9 @@ export function SatelliteDetailsPage() {
                 <button
                   onClick={saveTelescope}
                   disabled={savingTelescope || !telescopeInput}
-                  className="px-2 py-0.5 text-xs rounded bg-blue-700 hover:bg-blue-600 text-white disabled:opacity-50"
+                  className="px-2 py-0.5 text-xs rounded bg-blue-700 hover:bg-blue-600 text-white disabled:opacity-50 flex items-center"
                 >
-                  ✓
+                  {savingTelescope ? <Spinner className="h-3 w-3" /> : '✓'}
                 </button>
                 <button
                   onClick={() => setEditingTelescope(false)}
