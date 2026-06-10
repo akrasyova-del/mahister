@@ -242,11 +242,27 @@ function TrackedTab({
   const [search, setSearch] = useState('')
   const [showUntracked, setShowUntracked] = useState(true)
 
+  const [bulkUpdating, setBulkUpdating] = useState(false)
+
   const filtered = satellites.filter(s => {
     if (!showUntracked && !s.active) return false
     if (search && !s.name.toLowerCase().includes(search.toLowerCase()) && !String(s.norad_id).includes(search)) return false
     return true
   })
+
+  const allTracked = filtered.length > 0 && filtered.every(s => s.active)
+
+  const toggleAllTracked = async () => {
+    const target = !allTracked
+    const toUpdate = filtered.filter(s => s.active !== target)
+    if (toUpdate.length === 0) return
+    setBulkUpdating(true)
+    try {
+      await Promise.all(toUpdate.map(s => onToggleTracked(s, target)))
+    } finally {
+      setBulkUpdating(false)
+    }
+  }
 
   return (
     <div className="space-y-3">
@@ -275,7 +291,20 @@ function TrackedTab({
           <table className="w-full text-sm">
             <thead className="bg-gray-800 text-gray-400 text-xs uppercase">
               <tr>
-                <th className="px-3 py-2 text-left">Відстежується</th>
+                <th className="px-3 py-2 text-left">
+                  <div className="flex items-center gap-1.5">
+                    <input
+                      type="checkbox"
+                      checked={allTracked}
+                      disabled={filtered.length === 0 || bulkUpdating}
+                      onChange={toggleAllTracked}
+                      className="rounded"
+                      title={allTracked ? 'Зняти всі зі спостереження' : 'Додати всі до спостереження'}
+                    />
+                    {bulkUpdating && <Spinner className="h-3 w-3" />}
+                    <span>Відстежується</span>
+                  </div>
+                </th>
                 <th className="px-3 py-2 text-left">КА</th>
                 <th className="px-3 py-2 text-left">NORAD</th>
                 <th className="px-3 py-2 text-left">Категорія</th>
@@ -290,6 +319,7 @@ function TrackedTab({
                     <input
                       type="checkbox"
                       checked={s.active}
+                      disabled={bulkUpdating}
                       onChange={e => onToggleTracked(s, e.target.checked)}
                       className="rounded"
                     />
