@@ -65,6 +65,13 @@ export function CatalogPage() {
     })
   }
 
+  const selectableIds = catalog.filter(c => !c.tracked).map(c => c.norad_id)
+  const allSelected = selectableIds.length > 0 && selectableIds.every(id => selected.has(id))
+
+  const toggleSelectAll = () => {
+    setSelected(allSelected ? new Set() : new Set(selectableIds))
+  }
+
   const handleImport = async () => {
     if (selected.size === 0) return
     setLoading(true)
@@ -164,7 +171,16 @@ export function CatalogPage() {
               <table className="w-full text-sm">
                 <thead className="bg-gray-800 text-gray-400 text-xs uppercase">
                   <tr>
-                    <th className="px-3 py-2"></th>
+                    <th className="px-3 py-2">
+                      <input
+                        type="checkbox"
+                        checked={allSelected}
+                        disabled={selectableIds.length === 0}
+                        onChange={toggleSelectAll}
+                        className="rounded"
+                        title={allSelected ? 'Зняти весь вибір' : 'Вибрати всі'}
+                      />
+                    </th>
                     <th className="px-3 py-2 text-left">Назва</th>
                     <th className="px-3 py-2 text-left">NORAD</th>
                     <th className="px-3 py-2 text-left">Позначення</th>
